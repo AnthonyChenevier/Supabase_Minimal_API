@@ -11,9 +11,15 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddScoped(_ => new Client(builder.Configuration["https://uqoiqfwmxzhzbwopzeiq.supabase.co"],
-                                           builder.Configuration["sb_publishable_T9r8VV1x35fCfHMmGezKAQ_2OM-eOaG"],
-                                           new SupabaseOptions { AutoRefreshToken = true, AutoConnectRealtime = true }));
+builder.Services.AddScoped(_ =>
+{
+    string url = builder.Configuration["SupabaseUrl"];
+    string supabaseKey = builder.Configuration["SupabaseApiKey"];
+
+    SupabaseOptions options = new SupabaseOptions { AutoRefreshToken = true, AutoConnectRealtime = true };
+
+    return new Client(url, supabaseKey, options);
+});
 
 WebApplication app = builder.Build();
 
@@ -24,6 +30,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+
+//Create
 app.MapPost("/items",
             async (CreateItemRequest request, Client client) =>
             {
@@ -34,7 +42,8 @@ app.MapPost("/items",
                 return Results.Ok(newItem.ItemID);
             });
 
-app.MapGet("/newsletters/{id}",
+//Read
+app.MapGet("/items/{id}",
            async (long id, Client client) =>
            {
                var response = await client.From<Item>().Where(i => i.ItemID == id).Get();
@@ -49,13 +58,15 @@ app.MapGet("/newsletters/{id}",
                return Results.Ok(itemResponse);
            });
 
-app.MapDelete("/newsletters/{id}",
+//Delete
+app.MapDelete("/items/{id}",
               async (long id, Client client) =>
               {
                   await client.From<Item>().Where(i => i.ItemID == id).Delete();
 
                   return Results.NoContent();
               });
+
 
 app.UseHttpsRedirection();
 
