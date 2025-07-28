@@ -8,8 +8,8 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+//builder.Services.AddEndpointsApiExplorer();
+//builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped(_ =>
 {
@@ -21,14 +21,15 @@ builder.Services.AddScoped(_ =>
     return new Client(url, supabaseKey, options);
 });
 
+//builder.Services.AddControllers().AddNewtonsoftJson(options => { options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore; });
 WebApplication app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+//if (app.Environment.IsDevelopment())
+//{
+//    app.UseSwagger();
+//    app.UseSwaggerUI();
+//}
 
 
 //Create
@@ -44,7 +45,7 @@ app.MapPost("/items",
 
 //Read
 app.MapGet("/items/{id}",
-           async (long id, Client client) =>
+           async (int id, Client client) =>
            {
                var response = await client.From<Item>().Where(i => i.ItemID == id).Get();
 
@@ -60,12 +61,27 @@ app.MapGet("/items/{id}",
 
 //Delete
 app.MapDelete("/items/{id}",
-              async (long id, Client client) =>
+              async (int id, Client client) =>
               {
                   await client.From<Item>().Where(i => i.ItemID == id).Delete();
 
                   return Results.NoContent();
               });
+
+//Update
+app.MapPut("/items/{id}",
+           async (int id, Item updatedItem, Client client) =>
+           {
+               updatedItem.ItemID = id;
+               var response = await client.From<Item>().Where(i => i.ItemID == id).Update(updatedItem);
+
+               var updatedItemResponse = response.Models.FirstOrDefault();
+
+               if (updatedItemResponse is null)
+                   return Results.NotFound();
+
+               return Results.Ok(updatedItemResponse);
+           });
 
 
 app.UseHttpsRedirection();

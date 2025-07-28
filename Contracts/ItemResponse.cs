@@ -10,7 +10,7 @@ namespace Supabase_Minimal_API.Contracts;
 
 public class ItemResponse
 {
-    public long ItemID { get; set; }
+    public int ItemID { get; set; }
     public string Description { get; set; }
     public float Price { get; set; }
     public long SupplierID { get; set; }

@@ -6,4 +6,7 @@
         public float Price { get; set; }
         public long SupplierID { get; set; }
     }
+
+
+    public record UpdateItemRequest(string Description, decimal Price, long SupplierID);
 }
