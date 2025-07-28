@@ -7,8 +7,9 @@ internal static class Program
     private static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-        
-        builder.Services.AddControllers();
+
+        builder.Services.AddControllers()
+            .AddNewtonsoftJson();
 
         var config = builder.Configuration;
 
@@ -21,7 +22,6 @@ internal static class Program
 
         ConfigureSupabase(builder.Services, config);
 
-        //builder.Services.AddControllers().AddNewtonsoftJson(options => { options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore; });
         var app = builder.Build();
 
         if (useSwagger)
