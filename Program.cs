@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using Supabase;
 
 namespace Supabase_Minimal_API;
@@ -9,7 +10,10 @@ internal static class Program
         var builder = WebApplication.CreateBuilder(args);
 
         builder.Services.AddControllers()
-            .AddNewtonsoftJson();
+            .AddNewtonsoftJson(options =>
+            {
+                options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+            });
 
         var config = builder.Configuration;
 
