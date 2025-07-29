@@ -1,93 +1,64 @@
-using Supabase_Minimal_API.Contracts;
-using Supabase_Minimal_API.Models;
+using Newtonsoft.Json;
 using Supabase;
 
-WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+namespace Supabase_Minimal_API;
 
-// Add services to the container.
-
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-//builder.Services.AddEndpointsApiExplorer();
-//builder.Services.AddSwaggerGen();
-
-builder.Services.AddScoped(_ =>
+internal static class Program
 {
-    string url = builder.Configuration["SupabaseUrl"];
-    string supabaseKey = builder.Configuration["SupabaseApiKey"];
+    private static void Main(string[] args)
+    {
+        var builder = WebApplication.CreateBuilder(args);
 
-    SupabaseOptions options = new SupabaseOptions { AutoRefreshToken = true, AutoConnectRealtime = true };
-
-    return new Client(url, supabaseKey, options);
-});
-
-//builder.Services.AddControllers().AddNewtonsoftJson(options => { options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore; });
-WebApplication app = builder.Build();
-
-// Configure the HTTP request pipeline.
-//if (app.Environment.IsDevelopment())
-//{
-//    app.UseSwagger();
-//    app.UseSwaggerUI();
-//}
-
-
-//Create
-app.MapPost("/items",
-            async (CreateItemRequest request, Client client) =>
+        builder.Services.AddControllers()
+            .AddNewtonsoftJson(options =>
             {
-                var item = new Item { Description = request.Description, Price = request.Price, SupplierID = request.SupplierID };
-                var response = await client.From<Item>().Insert(item);
-                var newItem = response.Models.First();
-
-                return Results.Ok(newItem.ItemID);
+                options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
             });
 
-//Read
-app.MapGet("/items/{id}",
-           async (int id, Client client) =>
-           {
-               var response = await client.From<Item>().Where(i => i.ItemID == id).Get();
+        var config = builder.Configuration;
 
-               var item = response.Models.FirstOrDefault();
+        var useSwagger = config.GetValue<bool>("UseSwagger");
+        if (useSwagger)
+        {
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
+        }
 
-               if (item is null)
-                   return Results.NotFound();
+        ConfigureSupabase(builder.Services, config);
 
-               var itemResponse = new ItemResponse { ItemID = item.ItemID, Description = item.Description, Price = item.Price, SupplierID = item.SupplierID };
+        var app = builder.Build();
 
-               return Results.Ok(itemResponse);
-           });
+        if (useSwagger)
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI();
+        }
+        
+        app.UseHttpsRedirection();
 
-//Delete
-app.MapDelete("/items/{id}",
-              async (int id, Client client) =>
-              {
-                  await client.From<Item>().Where(i => i.ItemID == id).Delete();
+        app.UseAuthorization();
 
-                  return Results.NoContent();
-              });
+        app.MapControllers();
 
-//Update
-app.MapPut("/items/{id}",
-           async (int id, Item updatedItem, Client client) =>
-           {
-               updatedItem.ItemID = id;
-               var response = await client.From<Item>().Where(i => i.ItemID == id).Update(updatedItem);
+        app.Run();
+    }
 
-               var updatedItemResponse = response.Models.FirstOrDefault();
+    private static void ConfigureSupabase(IServiceCollection services, IConfiguration config)
+    {
+        services.AddScoped(_ =>
+        {
+            string? url = config.GetValue<string>("SupabaseUrl");
+            string? supabaseKey = config.GetValue<string>("SupabaseApiKey");
 
-               if (updatedItemResponse is null)
-                   return Results.NotFound();
+            if (string.IsNullOrWhiteSpace(url) ||
+                string.IsNullOrWhiteSpace(supabaseKey))
+            {
+                throw new Exception("Missing Supabase configuration in appsettings.json.");
+            }
 
-               return Results.Ok(updatedItemResponse);
-           });
+            SupabaseOptions options = new SupabaseOptions { AutoRefreshToken = true, AutoConnectRealtime = true };
 
-
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
-app.MapControllers();
-
-app.Run();
+            return new Client(url, supabaseKey, options);
+        });
+    }
+}
