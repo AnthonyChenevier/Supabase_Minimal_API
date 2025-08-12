@@ -1,93 +1,67 @@
-using Supabase_Minimal_API.Contracts;
-using Supabase_Minimal_API.Models;
+using Newtonsoft.Json;
 using Supabase;
 
-WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+namespace Supabase_Minimal_API;
 
-// Add services to the container.
-
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-//builder.Services.AddEndpointsApiExplorer();
-//builder.Services.AddSwaggerGen();
-
-builder.Services.AddScoped(_ =>
+internal static class Program
 {
-    string url = builder.Configuration["SupabaseUrl"];
-    string supabaseKey = builder.Configuration["SupabaseApiKey"];
+    private static void Main(string[] args)
+    {
+        WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-    SupabaseOptions options = new SupabaseOptions { AutoRefreshToken = true, AutoConnectRealtime = true };
+        bool useSwagger = builder.Configuration.GetValue<bool>("UseSwagger");
 
-    return new Client(url, supabaseKey, options);
-});
+        ConfigureWebAppBuilder(builder, useSwagger);
 
-//builder.Services.AddControllers().AddNewtonsoftJson(options => { options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore; });
-WebApplication app = builder.Build();
+        WebApplication app = BuildWebApp(builder, useSwagger);
 
-// Configure the HTTP request pipeline.
-//if (app.Environment.IsDevelopment())
-//{
-//    app.UseSwagger();
-//    app.UseSwaggerUI();
-//}
+        app.Run();
+    }
 
 
-//Create
-app.MapPost("/items",
-            async (CreateItemRequest request, Client client) =>
+    static WebApplication BuildWebApp(WebApplicationBuilder builder, bool useSwagger)
+    {
+        WebApplication app = builder.Build();
+
+        if (useSwagger)
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI();
+        }
+
+        app.UseHttpsRedirection();
+
+        return app;
+    }
+
+    private static void ConfigureWebAppBuilder(WebApplicationBuilder builder, bool useSwagger)
+    {
+        builder.Services.AddControllers().AddNewtonsoftJson(options => { options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore; });
+
+        ConfigureSupabase(builder.Services, builder.Configuration);
+
+        if (useSwagger)
+        {
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
+        }
+    }
+
+    private static void ConfigureSupabase(IServiceCollection services, IConfiguration config)
+    {
+        services.AddScoped(_ =>
+        {
+            string? url = config.GetValue<string>("Supabase:Url");
+            string? supabaseKey = config.GetValue<string>("Supabase:Key");
+
+            if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(supabaseKey))
+                throw new Exception("Missing Supabase configuration in appsettings.json.");
+
+            SupabaseOptions options = new SupabaseOptions
             {
-                var item = new Item { Description = request.Description, Price = request.Price, SupplierID = request.SupplierID };
-                var response = await client.From<Item>().Insert(item);
-                var newItem = response.Models.First();
+                AutoRefreshToken = true,
+                AutoConnectRealtime = true
+            };
 
-                return Results.Ok(newItem.ItemID);
-            });
-
-//Read
-app.MapGet("/items/{id}",
-           async (int id, Client client) =>
-           {
-               var response = await client.From<Item>().Where(i => i.ItemID == id).Get();
-
-               var item = response.Models.FirstOrDefault();
-
-               if (item is null)
-                   return Results.NotFound();
-
-               var itemResponse = new ItemResponse { ItemID = item.ItemID, Description = item.Description, Price = item.Price, SupplierID = item.SupplierID };
-
-               return Results.Ok(itemResponse);
-           });
-
-//Delete
-app.MapDelete("/items/{id}",
-              async (int id, Client client) =>
-              {
-                  await client.From<Item>().Where(i => i.ItemID == id).Delete();
-
-                  return Results.NoContent();
-              });
-
-//Update
-app.MapPut("/items/{id}",
-           async (int id, Item updatedItem, Client client) =>
-           {
-               updatedItem.ItemID = id;
-               var response = await client.From<Item>().Where(i => i.ItemID == id).Update(updatedItem);
-
-               var updatedItemResponse = response.Models.FirstOrDefault();
-
-               if (updatedItemResponse is null)
-                   return Results.NotFound();
-
-               return Results.Ok(updatedItemResponse);
-           });
-
-
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
-app.MapControllers();
-
-app.Run();
+            return new Client(options);
+        });
