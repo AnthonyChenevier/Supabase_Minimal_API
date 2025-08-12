@@ -3,7 +3,7 @@
 namespace Supabase_Minimal_API.Requests
 {
     /// <summary>
-    /// ItemRequest is used to serialise an ItemModel without a primary key. Used for formatting request json with required fields.
+    /// ItemRequest is used to serialise an ItemModel without a primary key. Used for formatting json requests with required fields.
     /// </summary>
     public class ItemRequest
     {
