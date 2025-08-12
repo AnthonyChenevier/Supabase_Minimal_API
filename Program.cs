@@ -52,9 +52,9 @@ internal static class Program
         services.AddScoped(_ =>
         {
             string? url = config.GetValue<string>("Supabase:Url");
-            string? supabaseKey = config.GetValue<string>("Supabase:Key");
+            string? key = config.GetValue<string>("Supabase:Key");
 
-            if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(supabaseKey))
+            if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(key))
                 throw new Exception("Missing Supabase configuration in appsettings.json.");
 
             SupabaseOptions options = new SupabaseOptions
@@ -63,5 +63,7 @@ internal static class Program
                 AutoConnectRealtime = true
             };
 
-            return new Client(options);
+            return new Client(url, key, options);
         });
+    }
+}
