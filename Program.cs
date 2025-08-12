@@ -18,26 +18,6 @@ internal static class Program
         app.Run();
     }
 
-
-    static WebApplication BuildWebApp(WebApplicationBuilder builder, bool useSwagger)
-    {
-        WebApplication app = builder.Build();
-
-        if (useSwagger)
-        {
-            app.UseSwagger();
-            app.UseSwaggerUI();
-        }
-
-        app.UseHttpsRedirection();
-
-        app.UseAuthorization();
-
-        app.MapControllers();
-
-        return app;
-    }
-
     private static void ConfigureWebAppBuilder(WebApplicationBuilder builder, bool useSwagger)
     {
         builder.Services.AddControllers().AddNewtonsoftJson(options => { options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore; });
@@ -69,5 +49,24 @@ internal static class Program
 
             return new Client(url, key, options);
         });
+    }
+
+    private static WebApplication BuildWebApp(WebApplicationBuilder builder, bool useSwagger)
+    {
+        WebApplication app = builder.Build();
+
+        if (useSwagger)
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI();
+        }
+
+        app.UseHttpsRedirection();
+
+        app.UseAuthorization();
+
+        app.MapControllers();
+
+        return app;
     }
 }
