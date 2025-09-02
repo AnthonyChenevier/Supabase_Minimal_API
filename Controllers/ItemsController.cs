@@ -11,12 +11,12 @@ namespace Supabase_Minimal_API.Controllers;
 public class ItemsController : ControllerBase
 {
     // READ
-    [HttpGet("{id}")]
-    public async Task<IActionResult> OnGetAsync(int id, [FromServices] Client client)
+    [HttpGet("{id:long}")]
+    public async Task<IActionResult> OnGetAsync(long id, [FromServices] Client client)
     {
         ModeledResponse<ItemModel> response = await client.From<ItemModel>().Where(i => i.ItemID == id).Get();
 
-        ItemModel? item = response.Models.FirstOrDefault();
+        ItemModel? item = response.Model;
 
         if (item is null)
             return NotFound();
@@ -28,6 +28,9 @@ public class ItemsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> OnPostAsync([FromBody] ItemRequest request, [FromServices] Client client)
     {
+        //if (!ModelState.IsValid)
+        //    return BadRequest(ModelState);
+
         ItemModel item = new ItemModel(request);
 
         ModeledResponse<ItemModel> response = await client.From<ItemModel>().Insert(item);
@@ -38,9 +41,12 @@ public class ItemsController : ControllerBase
     }
 
     // UPDATE
-    [HttpPut("{id}")]
+    [HttpPut("{id:long}")]
     public async Task<IActionResult> OnPutAsync(long id, [FromBody] ItemRequest request, [FromServices] Client client)
     {
+        //if (!ModelState.IsValid)
+        //    return BadRequest(ModelState);
+
         ItemModel item = new ItemModel(id, request);
 
         ModeledResponse<ItemModel> response = await client.From<ItemModel>().Where(i => i.ItemID == id).Update(item);
